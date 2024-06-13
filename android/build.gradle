@@ -1,0 +1,42 @@
+group 'com.phonereplay.phone_replay_flutter_lib'
+version '1.0'
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.2.0'
+    }
+}
+
+rootProject.allprojects {
+    repositories {
+        google()
+        maven {
+            url "https://jitpack.io"
+        }
+        mavenCentral()
+    }
+}
+
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 31
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    defaultConfig {
+        minSdkVersion 28
+    }
+}
+
+dependencies {
+    implementation 'com.github.phone-replay:phone-replay-android-lib:dev-SNAPSHOT'
+}
