@@ -15,7 +15,7 @@ public class LocalActivity {
         this.gestures = new HashSet<>();
     }
 
-    //
+
     public String getId() {
         return id;
     }
