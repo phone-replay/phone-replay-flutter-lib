@@ -15,10 +15,6 @@ buildscript {
 rootProject.allprojects {
     repositories {
         google()
-        maven {
-            //url 'http://localhost:8080'
-            //allowInsecureProtocol = true
-        }
         mavenCentral()
     }
 }
@@ -36,7 +32,4 @@ android {
     defaultConfig {
         minSdkVersion 28
     }
-}
-
-dependencies {
 }
