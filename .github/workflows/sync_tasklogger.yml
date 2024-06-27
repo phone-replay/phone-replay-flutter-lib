@@ -30,11 +30,12 @@ jobs:
           cp -r android/src/main/java/com/phonereplay/phone_replay_flutter_lib/tasklogger android-core-flutter/phone-replay/src/main/java/com/phonereplay/phone_replay_flutter_lib/
           cd android-core-flutter
           git add .
-          git commit -m "Update tasklogger with latest changes from phone-replay-flutter-lib"
+          LAST_COMMIT_MSG=$(git log -1 --pretty=%B)
+          git commit -m "Sync tasklogger: $LAST_COMMIT_MSG"
 
       - name: Push changes to android-core-flutter repository
         env:
           PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
           cd android-core-flutter
-          git push origin HEAD:master  # Substitua 'main' pelo nome do branch correto do android-core-flutter
+          git push origin HEAD:master  # Substitua 'master' pelo nome do branch correto do android-core-flutter
