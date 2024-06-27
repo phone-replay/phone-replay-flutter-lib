@@ -1,4 +1,4 @@
-name: Sync and Build Tasklogger
+name: Sync Tasklogger
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  sync-and-build-tasklogger:
+  sync-tasklogger:
     runs-on: ubuntu-latest
 
     steps:
@@ -38,24 +38,3 @@ jobs:
         run: |
           cd android-core-flutter
           git push origin HEAD:master  # Substitua 'main' pelo nome do branch correto do android-core-flutter
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v2
-        with:
-          distribution: 'adopt'
-          java-version: '17'
-
-      - name: Build the project
-        run: |
-          cd android-core-flutter
-          ./gradlew clean assembleRelease  # Altere conforme necessário para o seu projeto
-
-      - name: Move .aar to project root
-        run: |
-          mv android-core-flutter/app/build/outputs/aar/app-release.aar android-core-flutter/app-release.aar
-
-      - name: Upload .aar artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: phone-replay-flutter-lib.aar
-          path: android-core-flutter/app-release.aar  # Caminho atualizado para a raiz do projeto

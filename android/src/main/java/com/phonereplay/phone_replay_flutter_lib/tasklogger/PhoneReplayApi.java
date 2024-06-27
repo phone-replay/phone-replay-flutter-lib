@@ -152,7 +152,8 @@ public class PhoneReplayApi {
     private SurfaceView getSurfaceView(View view) {
         if (view instanceof SurfaceView) {
             return (SurfaceView) view;
-        } else if (view instanceof ViewGroup viewGroup) {
+        } else if (view instanceof ViewGroup) {
+            ViewGroup viewGroup = (ViewGroup) view;
             for (int i = 0; i < viewGroup.getChildCount(); i++) {
                 SurfaceView surfaceView = getSurfaceView(viewGroup.getChildAt(i));
                 if (surfaceView != null) {
