@@ -11,7 +11,6 @@ public class TimeLine {
         this.targetTime = targetTime;
     }
 
-    // Getters
     public String getCoordinates() {
         return coordinates;
     }
