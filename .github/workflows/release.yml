@@ -1,0 +1,38 @@
+name: Sync Tasklogger
+
+on:
+  push:
+    paths:
+      - 'android/src/main/java/com/phonereplay/phone_replay_flutter_lib/tasklogger/**'
+  workflow_dispatch:
+
+jobs:
+  sync-tasklogger:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout phone-replay-flutter-lib repository
+        uses: actions/checkout@v2
+
+      - name: Clone android-core-flutter repository
+        env:
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        run: |
+          git clone https://phone-replay:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/phone-replay/android-core-flutter.git
+          cd android-core-flutter
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Copy tasklogger to android-core-flutter repository
+        run: |
+          cp -r android/src/main/java/com/phonereplay/phone_replay_flutter_lib/tasklogger android-core-flutter/phone-replay/src/main/java/com/phonereplay/phone_replay_flutter_lib/
+          cd android-core-flutter
+          git add .
+          git commit -m "Update tasklogger with latest changes from phone-replay-flutter-lib"
+
+      - name: Push changes to android-core-flutter repository
+        env:
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        run: |
+          cd android-core-flutter
+          git push origin main

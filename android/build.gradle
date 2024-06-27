@@ -8,7 +8,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.2.0'
+        classpath 'com.android.tools.build:gradle:7.4.2'
     }
 }
 
@@ -16,7 +16,8 @@ rootProject.allprojects {
     repositories {
         google()
         maven {
-            url "https://jitpack.io"
+            //url 'http://localhost:8080'
+            //allowInsecureProtocol = true
         }
         mavenCentral()
     }
@@ -38,5 +39,4 @@ android {
 }
 
 dependencies {
-    implementation 'com.github.phone-replay:phone-replay-android-lib:dev-SNAPSHOT'
 }

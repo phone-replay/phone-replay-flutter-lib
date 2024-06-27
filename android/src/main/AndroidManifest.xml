@@ -1,3 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-  package="com.phonereplay.phone_replay_flutter_lib">
+    package="com.phonereplay.phone_replay_flutter_lib">
+
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 </manifest>
