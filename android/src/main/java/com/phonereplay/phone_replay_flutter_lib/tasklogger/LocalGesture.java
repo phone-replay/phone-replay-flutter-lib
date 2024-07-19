@@ -2,7 +2,7 @@ package com.phonereplay.phone_replay_flutter_lib.tasklogger;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
+//
 public class LocalGesture {
     public String activityId;
 
