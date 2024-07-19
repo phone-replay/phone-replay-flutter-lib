@@ -1,6 +1,7 @@
 package com.phonereplay.phone_replay_flutter_lib.tasklogger;
 
 import android.app.Activity;
+import android.util.Log;
 import android.view.ActionMode;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
@@ -13,72 +14,81 @@ import android.view.Window.Callback;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class UserInteractionAwareCallback extends GestureDetector.SimpleOnGestureListener implements Callback {
 
-    private static final long SWIPE_THRESHOLD = 100;
-
-    private static final long SWIPE_VELOCITY_THRESHOLD = 100;
-
+    private static final float MIN_DISTANCE = 10.0f;
     private final Callback originalCallback;
-
-    private final Activity activity;
-
-
     private final GestureDetector gestureDetector;
-
+    private final List<float[]> currentGestureCoordinates;
+    private final Map<String, ActivityGesture> activityGestureLogs;
+    private final Activity activity;
+    private Gesture currentGesture;
+    private boolean isTrackingGesture;
 
     public UserInteractionAwareCallback(final Callback originalCallback, final Activity activity) {
         this.originalCallback = originalCallback;
-        this.activity = activity;
         this.gestureDetector = new GestureDetector(activity, this);
+        this.currentGestureCoordinates = new ArrayList<>();
+        this.activityGestureLogs = new HashMap<>();
+        this.isTrackingGesture = false;
+        this.activity = activity;
+        String activityName = activity.getClass().getSimpleName();
+        activityGestureLogs.put(activityName, new ActivityGesture(activityName));
     }
 
     @Override
     public boolean dispatchTouchEvent(final MotionEvent event) {
         gestureDetector.onTouchEvent(event);
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                Log.d("ActionRegistered", "Gesture: BOTAO PRESSIONADO");
+                currentGestureCoordinates.clear();
+                currentGesture = new Gesture();
+                isTrackingGesture = true;
+                break;
+            case MotionEvent.ACTION_UP:
+                Log.d("ActionRegistered", "Gesture: BOTAO DESPRESSIONADO");
+                if (isTrackingGesture) {
+                    isTrackingGesture = false;
+                    if (currentGesture != null) {
+                        registerGesture(currentGesture);
+                        currentGesture = null;
+                    }
+                }
+                break;
+        }
         return originalCallback.dispatchTouchEvent(event);
     }
 
     @Override
-    public boolean onDown(MotionEvent e) {
-        return true;
-    }
-
-    @Override
     public boolean onSingleTapUp(MotionEvent e) {
-        handleTouchAction("Single Tap", e.getX(), e.getY());
+        extracted(e);
         return true;
     }
 
-    @Override
-    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-        assert e1 != null && e2 != null; // Assegura que e1 e e2 não são nulos
-        float diffY = e2.getY() - e1.getY();
-        float diffX = e2.getX() - e1.getX();
-        if (Math.abs(diffX) < Math.abs(diffY)) {
-            if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
-                if (diffY > 0) {
-                    handleTouchAction("Swipe Down", e2.getX(), e2.getY());
-                } else {
-                    handleTouchAction("Swipe Up", e2.getX(), e2.getY());
-                }
-                return true;
-            }
-        }
-        return false;
+    private void extracted(MotionEvent e) {
+        currentGestureCoordinates.add(new float[]{e.getX(), e.getY()});
+        Log.d("ActionRegistered", "Gesture: " + e.getX() + " " + e.getY());
+        PhoneReplayApi.registerTouchAction("scroll", e.getX(), e.getY(), currentGesture);
     }
 
     @Override
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-        //handleTouchAction("Trail", e1.getEventTime());
+        if (isTrackingGesture && e2 != null) {
+            if (currentGestureCoordinates.isEmpty() || distance(e2.getX(), e2.getY(), currentGestureCoordinates.get(currentGestureCoordinates.size() - 1)) > MIN_DISTANCE) {
+                extracted(e2);
+            }
+        }
         return true;
     }
 
-    private void handleTouchAction(String action, float x, float y) {
-        PhoneReplayApi.registerTouchAction(action, x, y);
-        if (activity != null) {
-            activity.onUserInteraction();
-        }
+    private float distance(float x1, float y1, float[] lastPoint) {
+        return (float) Math.sqrt(Math.pow(x1 - lastPoint[0], 2) + Math.pow(y1 - lastPoint[1], 2));
     }
 
     @Override
@@ -183,11 +193,25 @@ public class UserInteractionAwareCallback extends GestureDetector.SimpleOnGestur
 
     @Override
     public void onActionModeStarted(ActionMode mode) {
-
     }
 
     @Override
     public void onActionModeFinished(ActionMode mode) {
+    }
 
+    private void registerGesture(Gesture gesture) {
+        String activityName = activity.getClass().getSimpleName();
+        ActivityGesture log = activityGestureLogs.get(activityName);
+        if (log != null) {
+            log.addGesture(gesture);
+        } else {
+            log = new ActivityGesture(activityName);
+            log.addGesture(gesture);
+            activityGestureLogs.put(activityName, log);
+        }
+    }
+
+    public Map<String, ActivityGesture> getActivityGestureLogs() {
+        return activityGestureLogs;
     }
 }

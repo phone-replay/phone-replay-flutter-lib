@@ -1,12 +1,10 @@
 package com.phonereplay.phone_replay_flutter_lib.tasklogger;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.PixelCopy;
 import android.view.SurfaceView;
 import android.view.View;
@@ -15,6 +13,8 @@ import android.view.ViewGroup;
 import com.phonereplay.phone_replay_flutter_lib.tasklogger.service.PhoneReplayService;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 public class PhoneReplayApi {
@@ -23,12 +23,7 @@ public class PhoneReplayApi {
     public static boolean startRecording = false;
     private static Thread thread;
     private static Handler mHandler;
-    @SuppressLint("StaticFieldLeak")
     private static PhoneReplayService apiClientService;
-    @SuppressLint("StaticFieldLeak")
-    private static GestureRecorder gestureRecorder;
-    private static StopwatchUtility stopwatch = new StopwatchUtility();
-    @SuppressLint("StaticFieldLeak")
     private static Context context;
     private static String platform;
     private static String projectKey;
@@ -44,17 +39,14 @@ public class PhoneReplayApi {
         apiClientService = new PhoneReplayService();
     }
 
-
     public static void startRecording() {
         if (Objects.equals(platform, "FLUTTER")) {
             ViewInitializer.setupUserInteractionCallback(activity);
         }
         new Thread(() -> {
-            gestureRecorder = new GestureRecorder();
             startRecording = true;
             startTime = System.currentTimeMillis();
             mHandler.postDelayed(thread, RECORDING_INTERVAL);
-            startCountUp();
         }).start();
     }
 
@@ -63,20 +55,13 @@ public class PhoneReplayApi {
             startRecording = false;
             endTime = System.currentTimeMillis();
             mHandler.removeCallbacks(thread);
-            Log.d("timer", stopwatch.timer);
-            stopwatch.stop();
 
             long duration = endTime - startTime;
-            Log.d("RecordingDuration", "Duração da gravação: " + duration + " milissegundos");
 
             DeviceModel deviceModel = new DeviceModel(context);
-            if (gestureRecorder != null) {
-                String summaryLog = gestureRecorder.generateSummaryLog();
-                Log.d("GestureRecorderSummary", summaryLog);
-            }
             new Thread(() -> {
                 try {
-                    apiClientService.createVideo(gestureRecorder.currentSession, deviceModel, projectKey, duration);
+                    apiClientService.createVideo(getActivityGesture(), deviceModel, projectKey, duration);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -84,20 +69,14 @@ public class PhoneReplayApi {
         }
     }
 
-    private static void startCountUp() {
-        if (stopwatch == null) {
-            stopwatch = new StopwatchUtility();
-        }
-        stopwatch.start();
-    }
-
-    public static void registerTouchAction(String action, float x, float y) {
+    public static void registerTouchAction(String action, float x, float y, Gesture currentGesture) {
         if (startRecording && activity != null) {
-            String activityName = activity.getClass().getSimpleName();
-            String targetTime = stopwatch.timer;
+            long currentTime = System.currentTimeMillis();
+            long timeSinceStart = currentTime - startTime;
             String gestureType = "(" + x + ", " + y + ")";
-            gestureRecorder.registerGesture(activityName, action, targetTime, gestureType);
-            Log.d("ActionRegistered", "Gesture: " + gestureType + ", Time: " + targetTime);
+            if (currentGesture != null) {
+                currentGesture.addAction(action, String.valueOf(timeSinceStart), gestureType);
+            }
         }
     }
 
@@ -162,5 +141,13 @@ public class PhoneReplayApi {
             }
         }
         return null;
+    }
+
+    public static Map<String, ActivityGesture> getActivityGesture() {
+        UserInteractionAwareCallback callback = ViewInitializer.getUserInteractionAwareCallback();
+        if (callback != null) {
+            return callback.getActivityGestureLogs();
+        }
+        return new HashMap<>();
     }
 }

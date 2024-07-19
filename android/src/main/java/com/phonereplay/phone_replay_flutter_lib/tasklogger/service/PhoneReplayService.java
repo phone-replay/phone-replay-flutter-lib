@@ -2,18 +2,19 @@ package com.phonereplay.phone_replay_flutter_lib.tasklogger.service;
 
 import android.graphics.Bitmap;
 
+import com.phonereplay.phone_replay_flutter_lib.tasklogger.ActivityGesture;
 import com.phonereplay.phone_replay_flutter_lib.tasklogger.DeviceModel;
-import com.phonereplay.phone_replay_flutter_lib.tasklogger.LocalSession;
 import com.phonereplay.phone_replay_flutter_lib.tasklogger.network.Client;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
 public class PhoneReplayService {
-    private static final int COMPRESSION_QUALITY = 20;
+    private static final int COMPRESSION_QUALITY = 10;
     private final Client client;
     private byte[] fullBytesVideo;
     private byte[] previousImageCompressed;
@@ -114,8 +115,8 @@ public class PhoneReplayService {
         bitmap.recycle();
     }
 
-    public void createVideo(LocalSession timeLines, DeviceModel deviceModel, String projectKey, long duration) throws IOException {
-        client.sendBinaryData(compress(fullBytesVideo), timeLines, deviceModel, projectKey, duration);
+    public void createVideo(Map<String, ActivityGesture> activityGesture, DeviceModel deviceModel, String projectKey, long duration) throws IOException {
+        client.sendBinaryData(compress(fullBytesVideo), activityGesture, deviceModel, projectKey, duration);
         this.fullBytesVideo = null;
     }
 

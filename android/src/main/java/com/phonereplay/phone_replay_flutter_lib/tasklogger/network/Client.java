@@ -4,10 +4,9 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.phonereplay.phone_replay_flutter_lib.tasklogger.ActivityGesture;
 import com.phonereplay.phone_replay_flutter_lib.tasklogger.DeviceModel;
-import com.phonereplay.phone_replay_flutter_lib.tasklogger.LocalActivity;
-import com.phonereplay.phone_replay_flutter_lib.tasklogger.LocalGesture;
-import com.phonereplay.phone_replay_flutter_lib.tasklogger.LocalSession;
+import com.phonereplay.phone_replay_flutter_lib.tasklogger.Gesture;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -16,6 +15,7 @@ import org.json.JSONObject;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -24,10 +24,12 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.zip.GZIPOutputStream;
 
 public class Client {
 
-    private static final String BASE_URL_K8S = "http://10.0.0.107:8080";
+    private static final String BASE_URL_K8S = "http://10.0.0.102:8080";
     private static String BASE_URL = null;
 
     private static String getString(HttpURLConnection conn) throws IOException {
@@ -62,26 +64,6 @@ public class Client {
         return deviceJson;
     }
 
-    @NonNull
-    private static JSONObject getActivityJson(LocalActivity activity) throws JSONException {
-        JSONObject activityJson = new JSONObject();
-        activityJson.put("id", activity.getId());
-        activityJson.put("activityName", activity.getActivityName());
-
-        JSONArray gesturesArray = new JSONArray();
-        for (LocalGesture gesture : activity.getGestures()) {
-            JSONObject gestureJson = new JSONObject();
-            gestureJson.put("activityId", gesture.activityId);
-            gestureJson.put("gestureType", gesture.gestureType);
-            gestureJson.put("targetTime", gesture.targetTime);
-            gestureJson.put("createdAt", gesture.createdAt);
-            gestureJson.put("coordinates", gesture.coordinates);
-            gesturesArray.put(gestureJson);
-        }
-        activityJson.put("gestures", gesturesArray);
-        return activityJson;
-    }
-
     public boolean validateAccessKey(String projectKey) {
         try {
             URL url = new URL(BASE_URL + "/check-recording?key=" + projectKey);
@@ -106,9 +88,17 @@ public class Client {
         }
     }
 
-    public void sendBinaryData(byte[] file, LocalSession actions, DeviceModel device, String projectKey, long duration) {
+    public byte[] compressString(String data) throws IOException {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
+        gzipOutputStream.write(data.getBytes(StandardCharsets.UTF_8));
+        gzipOutputStream.close();
+        return byteArrayOutputStream.toByteArray();
+    }
+
+    public void sendBinaryData(byte[] file, Map<String, ActivityGesture> activityGesture, DeviceModel device, String projectKey, long duration) {
         try {
-            URL url = new URL(BASE_URL_K8S + "/write?key=" + projectKey);
+            URL url = new URL(BASE_URL_K8S + "/v2/write?key=" + projectKey);
             String boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setDoOutput(true);
@@ -134,16 +124,20 @@ public class Client {
             writer.write("\r\n");
 
             writer.write("--" + boundary + "\r\n");
-            writer.write("Content-Disposition: form-data; name=\"actions\"\r\n\r\n");
-            JSONObject actionsJson = new JSONObject();
-            JSONArray activitiesArray = new JSONArray();
+            writer.write("Content-Disposition: form-data; name=\"activityGestureLogs\"; filename=\"activityGestureLogs.gz\"\r\n");
+            writer.write("Content-Type: application/octet-stream\r\n\r\n");
+            writer.flush();
 
-            for (LocalActivity activity : actions.getActivities()) {
-                JSONObject activityJson = getActivityJson(activity);
-                activitiesArray.put(activityJson);
+            JSONArray activitiesArray = new JSONArray();
+            for (ActivityGesture log : activityGesture.values()) {
+                JSONObject logJson = getJsonObject(log);
+                activitiesArray.put(logJson);
             }
-            actionsJson.put("activities", activitiesArray);
-            writer.write(actionsJson.toString());
+            activityGesture.clear();
+            String activitiesArrayString = activitiesArray.toString();
+            byte[] compressedActivities = compressString(activitiesArrayString);
+            outputStream.write(compressedActivities);
+            outputStream.flush();
             writer.write("\r\n");
 
             writer.write("--" + boundary + "\r\n");
@@ -157,12 +151,40 @@ public class Client {
 
             String response = getString(conn);
             System.out.println("Response: " + response);
-
             conn.disconnect();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
+    @NonNull
+    private static JSONObject getJsonObject(ActivityGesture log) throws JSONException {
+        JSONObject logJson = new JSONObject();
+        logJson.put("activityName", log.getActivityName());
+        JSONArray gesturesArray = new JSONArray();
+        for (Gesture gesture : log.getGestures()) {
+            JSONObject gestureJson = getJsonObject(gesture);
+            gesturesArray.put(gestureJson);
+        }
+        logJson.put("gestures", gesturesArray);
+        return logJson;
+    }
+
+    @NonNull
+    private static JSONObject getJsonObject(Gesture gesture) throws JSONException {
+        JSONObject gestureJson = new JSONObject();
+        JSONArray actionsArray = new JSONArray();
+        for (String[] actionData : gesture.getActions()) {
+            JSONObject actionJson = new JSONObject();
+            actionJson.put("action", actionData[0]);
+            actionJson.put("targetTime", actionData[1]);
+            actionJson.put("coordinates", actionData[2]);
+            actionsArray.put(actionJson);
+        }
+        gestureJson.put("actions", actionsArray);
+        return gestureJson;
+    }
+
 
     public void callEndpoint() {
         try {

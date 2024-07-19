@@ -2,9 +2,6 @@ package com.phonereplay.phone_replay_flutter_lib.tasklogger;
 
 import android.app.Activity;
 import android.content.Context;
-import android.util.Log;
-
-import io.flutter.embedding.android.FlutterActivity;
 
 public class PhoneReplay extends Activity {
 
@@ -32,11 +29,8 @@ public class PhoneReplay extends Activity {
     }
 
     private void attachBaseContext() {
-        if (activity instanceof FlutterActivity) {
-            phoneReplayApi = new PhoneReplayApi(activity, context, accessKey, "FLUTTER");
-            phoneReplayApi.initThread();
-            phoneReplayApi.initHandler();
-            Log.d("ActivityInstance", "activity is flutter instance native instance");
-        }
+        phoneReplayApi = new PhoneReplayApi(activity, context, accessKey, "FLUTTER");
+        phoneReplayApi.initThread();
+        phoneReplayApi.initHandler();
     }
 }

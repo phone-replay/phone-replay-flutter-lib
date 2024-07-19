@@ -11,7 +11,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter fDemo',
+      title: 'Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -86,8 +86,9 @@ class RecordingPage extends StatefulWidget {
 }
 
 class _RecordingPageState extends State<RecordingPage> {
+
   void startRecording() async {
-    PhoneReplayFlutterLib.setProjectKey("9829270026e0d6bb6eb3144225dd93deef6eb3c8");
+    PhoneReplayFlutterLib.setProjectKey("5ff4d39315409532b479a22bd6c52c9e127034c3");
     PhoneReplayFlutterLib.startRecording();
   }
 
